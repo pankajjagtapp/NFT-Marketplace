@@ -7,15 +7,19 @@ import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 contract Marketplace is ReentrancyGuard {
+    
+    //@title NFT Marketplace
+    //@author Pankaj Jagtap
+    //@dev All function calls are currently implemented without any side effects
 
-    // Variables
     IERC20 private jaggu;
 
-    address payable public immutable adminAccount; // the account that receives fees
+    address payable public immutable adminAccount;
     uint public immutable platformFeePercent = 25; // the fee percentage on sales = 2.5% = 25/1000
     uint public itemCount;  // Current items for sale
     uint public itemsSold; // Total items sold
 
+    // 3 Events - After Listing, after Cancelling Listing, after Selling Item
     event ItemListed(
         uint itemId,
         address indexed nft,
@@ -59,6 +63,9 @@ contract Marketplace is ReentrancyGuard {
         adminAccount = payable(msg.sender);
     }
 
+    // @notice Calculating the royalty that would have to be paid
+    // @param It will take item id and amount that is left after deducting platform fees
+
     function royaltyToPay(uint256 _itemId, uint256 _amount) public view returns (uint256 _royalty) {
         Item storage item = itemIdToItemMap[_itemId];
         return _royalty = (_amount * item.royaltyPercent) / 1000;
@@ -77,7 +84,10 @@ contract Marketplace is ReentrancyGuard {
         return itemCount;
     }
 
-    // Make item to offer on the marketplace
+    // @notice Listing Item on Marketplace.
+    // @dev It will confirm if you are the owner of the NFT item
+    // @param It will take ERC721 NFTcontractaddress, tokenid, expected Selling Price, expected Royalty Percent
+
     function listItem (IERC721 _NFT, uint _tokenId, uint _sellingPrice, uint _royaltyPercent) external nonReentrant {
         require(_NFT.ownerOf(_tokenId) == msg.sender, "You are not the owner, so can't sell");
         require(_sellingPrice > 0, "Price has to be greater than zero");
@@ -101,6 +111,10 @@ contract Marketplace is ReentrancyGuard {
         emit ItemListed(itemCount, address(_NFT), _tokenId, _sellingPrice, msg.sender);
     }
 
+    // @notice Cancelling the Listing from Marketplace.
+    // @dev It will confirm if you are currently the owner of the NFT item
+    // @param It will take item id
+
     function cancelListing (uint _itemId) external nonReentrant {
         Item storage item = itemIdToItemMap[_itemId];
         require(item.seller == msg.sender, "You are not the owner of the NFT item");
@@ -110,6 +124,10 @@ contract Marketplace is ReentrancyGuard {
 
         emit ItemCancelled(_itemId, msg.sender, address(item.nftContract));
     }
+
+    // @notice Buying items from Marketplace.
+    // @dev It will confirm if you have enough Jaggu Tokens to buy, if the item exists and is the item not sold
+    // @param It will take item id
 
     function buyItem (uint _itemId) external payable nonReentrant {
         Item storage item = itemIdToItemMap[_itemId];
@@ -128,7 +146,7 @@ contract Marketplace is ReentrancyGuard {
         } 
         else if (item.isFirstSale == false) {
             uint _royalty;
-            _royalty = royaltyToPay(_itemId, (_amount));
+            _royalty = royaltyToPay(_itemId, _amount);
             jaggu.transferFrom(msg.sender, item.NFTdesigner, _royalty);
 
             jaggu.transferFrom(msg.sender, item.seller, (_amount - _royalty));
@@ -144,6 +162,10 @@ contract Marketplace is ReentrancyGuard {
 
         emit ItemSold( _itemId, address(item.nftContract), item.tokenId, item.sellingPrice, item.seller, msg.sender );
     }
+
+    // @notice Calculate platform fees you have to pay
+    // @dev return the platform fees
+    // @param the selling price to be paid 
 
     function calculatePlatformFees(uint256 _amount) internal pure returns (uint256 _price) {
         return _price = (_amount * platformFeePercent) / 1000;

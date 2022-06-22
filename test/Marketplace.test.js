@@ -61,6 +61,7 @@ describe('Marketplace Contract', function () {
 		})
 
 		it("Should track minted NFT", async () => {
+			
 			// addr1 mints an NFT
 			await NFTContract.connect(addr1).mint(tokenURI1)
 			expect(await NFTContract.tokenCount()).to.equal(1);
@@ -81,12 +82,7 @@ describe('Marketplace Contract', function () {
 		})
 
 		it('Should cancel listing', async()=>{
-			// await NFTContract.connect(addr1).mint(tokenURI1)
-			// await NFTContract.connect(addr1).setApprovalForAll(marketplace.address, true)
-			// await marketplace.connect(addr1).cancelListing(1)
-			// it("reverts if there is no listing", async function () {
-				await expect(
-					marketplace.cancelListing(1)).to.be.revertedWith('You are not the owner of the NFT item')
+			await expect(marketplace.cancelListing(1)).to.be.revertedWith('You are not the owner of the NFT item')
 		})
 
 		it("Should fail if price is zero", async () => {
