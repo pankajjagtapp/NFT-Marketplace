@@ -1,15 +1,18 @@
-# Basic Sample Hardhat Project
+# NFT Marketplace Contract
 
-This project demonstrates a basic Hardhat use case. It comes with a sample contract, a test for that contract, a sample script that deploys that contract, and an example of a task implementation, which simply lists the available accounts.
+Create a Marketplace Smart contract to buy and sell NFTs(ERC721/ERC1155 or both based on your convenience) with your custom ERC20 token. (Can use OpenZeppelin)
 
-Try running some of the following tasks:
+Functionalities:
+1. Buy, Sell
+2. Need to add 2.5% of Sell Price/Token(s) to Platform Fees.
+3. Users can set Fractional Royalties of Multiple Owner(s) for the NFT’s Selling Price.
+4. Create 3 different SC For ERC20, ERC721, and Marketplace.
 
-```shell
-npx hardhat accounts
-npx hardhat compile
-npx hardhat clean
-npx hardhat test
-npx hardhat node
-node scripts/sample-script.js
-npx hardhat help
-```
+# Deployed Contracts
+Contracts are deployed on Rinkeby Network
+
+JagguToken contract is deployed at (0x2Db8C0b90eB3eedFAd566169769769978CF8A006) Etherscan link - https://rinkeby.etherscan.io/address/0x2Db8C0b90eB3eedFAd566169769769978CF8A006
+
+MyNFT contract is deployed at (0x3151b715348B8b0ad4e4Fad84331Ff949e3b001B) Etherscan link - https://rinkeby.etherscan.io/address/0x3151b715348B8b0ad4e4Fad84331Ff949e3b001B
+
+Staking contract is deployed at (0xCe1D9ce1e4628E6245b1213565e1B9b9beFF5339) Etherscan link - https://rinkeby.etherscan.io/address/0xCe1D9ce1e4628E6245b1213565e1B9b9beFF5339
