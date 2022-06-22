@@ -15,7 +15,7 @@ contract Marketplace is ReentrancyGuard {
     IERC20 private jaggu;
 
     address payable public immutable adminAccount;
-    uint public immutable platformFeePercent = 25; // the fee percentage on sales = 2.5% = 25/1000
+    uint public platformFeePercent = 25; // the fee percentage on sales = 2.5% = 25/1000
     uint public itemCount;  // Current items for sale
     uint public itemsSold; // Total items sold
 
@@ -69,19 +69,6 @@ contract Marketplace is ReentrancyGuard {
     function royaltyToPay(uint256 _itemId, uint256 _amount) public view returns (uint256 _royalty) {
         Item storage item = itemIdToItemMap[_itemId];
         return _royalty = (_amount * item.royaltyPercent) / 1000;
-    }
-
-    // HELPER FUNCTIONS
-    function getLatestIdToItem() external view returns (Item memory) {
-        return itemIdToItemMap[itemCount];
-    }
-
-    function getItemForId(uint256 _itemId) external view returns (Item memory) {
-        return itemIdToItemMap[_itemId];
-    }
-
-    function getCurrentItem() external view returns (uint256) {
-        return itemCount;
     }
 
     // @notice Listing Item on Marketplace.
@@ -167,7 +154,7 @@ contract Marketplace is ReentrancyGuard {
     // @dev return the platform fees
     // @param the selling price to be paid 
 
-    function calculatePlatformFees(uint256 _amount) internal pure returns (uint256 _price) {
+    function calculatePlatformFees(uint256 _amount) internal view returns (uint256 _price) {
         return _price = (_amount * platformFeePercent) / 1000;
     }
 }
