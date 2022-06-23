@@ -7,7 +7,7 @@ import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "./NFT.sol";
 
-contract Marketplace is NFT, ReentrancyGuard {
+contract Marketplace is ReentrancyGuard {
     //@title NFT Marketplace
     //@author Pankaj Jagtap
     //@dev All function calls are currently implemented without any side effects
@@ -50,7 +50,6 @@ contract Marketplace is NFT, ReentrancyGuard {
         uint256 sellingPrice;
         address NFTcreator;
         address seller;
-        // bool isFirstSale;
         bool sold;
     }
 
@@ -100,13 +99,14 @@ contract Marketplace is NFT, ReentrancyGuard {
         return _totalRoyaltyAmount;
     }
 
-    function claimRoyalties() external {
+    function claimRoyalties() external payable {
         require(royaltyOwnerBalances[msg.sender] > 0, "No royalty earned");
         jaggu.transferFrom(
             address(this),
             payable(msg.sender),
             royaltyOwnerBalances[msg.sender]
         );
+        royaltyOwnerBalances[msg.sender] -= msg.value;
     }
 
     // @notice Listing Item on Marketplace.
@@ -130,7 +130,6 @@ contract Marketplace is NFT, ReentrancyGuard {
             _sellingPrice,
             msg.sender,
             msg.sender,
-            // true,
             false
         );
 
