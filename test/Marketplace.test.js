@@ -8,7 +8,7 @@ describe('Marketplace Contract', function () {
 	let marketplace;
 	let tokenURI1;
 	let tokenURI2;
-	const platformFeePercent = 25;
+	const platformFeePercent = 250;
 	let addr1;
 	let addr2;
 	let addr3;
