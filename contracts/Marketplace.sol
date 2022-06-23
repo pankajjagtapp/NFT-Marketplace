@@ -50,7 +50,7 @@ contract Marketplace is NFT, ReentrancyGuard {
         uint256 sellingPrice;
         address NFTcreator;
         address seller;
-        bool isFirstSale;
+        // bool isFirstSale;
         bool sold;
     }
 
@@ -130,7 +130,7 @@ contract Marketplace is NFT, ReentrancyGuard {
             _sellingPrice,
             msg.sender,
             msg.sender,
-            true,
+            // true,
             false
         );
 
@@ -173,23 +173,14 @@ contract Marketplace is NFT, ReentrancyGuard {
         require(_itemId > 0 && _itemId <= itemId, "Item does not exist");
         require(item.sold == false, "Item has already been sold");
 
-        if (item.isFirstSale == true) {
-            jaggu.transferFrom(msg.sender,payable(adminAccount),_platformFees); // transfer platform fees
-            jaggu.transferFrom(msg.sender, payable(item.seller), _amount); // transfer selling price to owner
-        } else {
-            uint256 _totalRoyaltyAmount = updateBalancesforRoyalties(_itemId,_sellingPrice);
+        uint256 _totalRoyaltyAmount = updateBalancesforRoyalties(_itemId, _sellingPrice);
 
-            jaggu.transferFrom(msg.sender,payable(adminAccount),_platformFees); // transfer platform fees
-
-            jaggu.transferFrom(msg.sender,payable(item.seller),(_amount - _totalRoyaltyAmount)); // transfer left price to owner
-
-            item.nftContract.transferFrom(item.seller,payable(msg.sender),item.tokenId);
-        }
+        jaggu.transferFrom(msg.sender,payable(adminAccount),_platformFees); // transfer platform fees
+        jaggu.transferFrom(msg.sender,payable(item.seller),(_amount - _totalRoyaltyAmount)); // transfer left price to owner
+        item.nftContract.transferFrom(address(this),payable(msg.sender), item.tokenId); // transfer NFT from smart contract to buyer
 
         delete itemIdToItemMap[_itemId];
         itemsSold++;
-
-        item.nftContract.transferFrom(address(this),payable(msg.sender), item.tokenId);
 
         emit ItemSold(
             _itemId,
