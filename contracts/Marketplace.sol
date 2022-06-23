@@ -48,34 +48,45 @@ contract Marketplace is ReentrancyGuard {
         IERC721 nftContract;
         uint tokenId;
         uint sellingPrice;
-        uint royaltyPercent;
         address payable NFTdesigner;
         address payable seller;
         bool isFirstSale;
         bool sold;
     }
 
-    // itemId to item mapping
-    mapping(uint => Item) public itemIdToItemMap;
+    mapping(uint => Item) public itemIdToItemMap; // itemId to item mapping
+    mapping(uint => address[]) private itemIdToRoyaltyOwners; //itemId to array of royalty Owners mapping
+    mapping(uint => uint[]) private itemIdtoRoyaltyPercent; // itemId to corresponding Royaly Percentages mapping
+
+    // @notice Setting royalty owners and corresponding royalty percent
+    // @dev Will check if msg.sender is the designer of the NFT
+
+    function setRoyaltyOwnersAndPercent(uint _itemId, address[] memory royaltyOwners, uint[] memory royaltyPercent) 
+    public {
+        Item storage item = itemIdToItemMap[_itemId];
+        require(item.seller == msg.sender && item.NFTdesigner == msg.sender, "You need to be the NFT designer and current owner of the NFT item");
+        itemIdToRoyaltyOwners[_itemId] = royaltyOwners;
+        itemIdtoRoyaltyPercent[_itemId] = royaltyPercent;
+    }
+
+    // @notice Calculating the royalty that would have to be paid
+    // @param It will take item id, sellling Price and index of address for which royalty is to be calculated
+
+    function calculateRoyaltyFees(uint _itemId, uint sellingPrice, uint index) public view returns(uint _royalty) {
+        uint _royaltyPercent = itemIdtoRoyaltyPercent[_itemId][index];
+        return _royalty = (sellingPrice * _royaltyPercent)/1000; 
+    }
 
     constructor(address _token) {
         jaggu = IERC20(_token);
         adminAccount = payable(msg.sender);
     }
 
-    // @notice Calculating the royalty that would have to be paid
-    // @param It will take item id and amount that is left after deducting platform fees
-
-    function royaltyToPay(uint256 _itemId, uint256 _amount) public view returns (uint256 _royalty) {
-        Item storage item = itemIdToItemMap[_itemId];
-        return _royalty = (_amount * item.royaltyPercent) / 1000;
-    }
-
     // @notice Listing Item on Marketplace.
     // @dev It will confirm if you are the owner of the NFT item
     // @param It will take ERC721 NFTcontractaddress, tokenid, expected Selling Price, expected Royalty Percent
 
-    function listItem (IERC721 _NFT, uint _tokenId, uint _sellingPrice, uint _royaltyPercent) external nonReentrant {
+    function listItem (IERC721 _NFT, uint _tokenId, uint _sellingPrice) external nonReentrant {
         require(_NFT.ownerOf(_tokenId) == msg.sender, "You are not the owner, so can't sell");
         require(_sellingPrice > 0, "Price has to be greater than zero");
         
@@ -86,7 +97,6 @@ contract Marketplace is ReentrancyGuard {
             _NFT,
             _tokenId,
             _sellingPrice,
-            _royaltyPercent,
             payable(msg.sender),
             payable(msg.sender),
             true,
@@ -130,13 +140,16 @@ contract Marketplace is ReentrancyGuard {
         if (item.isFirstSale == true) {
             jaggu.transferFrom(msg.sender, adminAccount, _platformFees); // transfer platform fees
             jaggu.transferFrom(msg.sender, item.seller, _amount); // transfer selling price to owner
-        } 
-        else if (item.isFirstSale == false) {
-            uint _royalty;
-            _royalty = royaltyToPay(_itemId, _amount);
-            jaggu.transferFrom(msg.sender, item.NFTdesigner, _royalty);
+        } else if (item.isFirstSale == false) {
+            uint _totalRoyaltySent;
+            uint _index = itemIdToRoyaltyOwners[_itemId].length;
 
-            jaggu.transferFrom(msg.sender, item.seller, (_amount - _royalty));
+            for (uint i=0; i<_index; i++) {
+                uint _individualRoyalty = calculateRoyaltyFees(_sellingPrice, _itemId, i);
+                jaggu.transferFrom(msg.sender, itemIdToRoyaltyOwners[_itemId][i], _individualRoyalty);
+                _totalRoyaltySent += _individualRoyalty;
+            }
+            jaggu.transferFrom(msg.sender, item.seller, (_amount - _totalRoyaltySent));
             item.nftContract.transferFrom(item.seller, msg.sender, item.tokenId);
         }
 

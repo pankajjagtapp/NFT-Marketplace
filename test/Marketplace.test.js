@@ -75,10 +75,10 @@ describe('Marketplace Contract', function () {
 		it('Should list NFT on the Marketplace', async () => {
 			await NFTContract.connect(addr1).mint(tokenURI1)
 			await NFTContract.connect(addr1).setApprovalForAll(marketplace.address, true)
-    		await marketplace.connect(addr1).listItem(NFTContract.address, 1, 4000, 25)
+    		await marketplace.connect(addr1).listItem(NFTContract.address, 1, 4000)
 			await NFTContract.connect(addr2).mint(tokenURI2)
 			await NFTContract.connect(addr2).setApprovalForAll(marketplace.address, true)
-    		await marketplace.connect(addr2).listItem(NFTContract.address, 2, 5000, 35)
+    		await marketplace.connect(addr2).listItem(NFTContract.address, 2, 5000)
 		})
 
 		it('Should cancel listing', async()=>{
@@ -88,7 +88,7 @@ describe('Marketplace Contract', function () {
 		it("Should fail if price is zero", async () => {
 			await NFTContract.connect(addr1).mint(tokenURI1)
 			await NFTContract.connect(addr1).setApprovalForAll(marketplace.address, true)
-			await expect(marketplace.connect(addr1).listItem(NFTContract.address, 1, 0, 35)).to.be.revertedWith("Price has to be greater than zero");
+			await expect(marketplace.connect(addr1).listItem(NFTContract.address, 1, 0)).to.be.revertedWith("Price has to be greater than zero");
 		  });
     });
 });
