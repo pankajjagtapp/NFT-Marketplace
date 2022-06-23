@@ -49,12 +49,16 @@ contract Marketplace is NFT, ReentrancyGuard {
         uint256 tokenId;
         uint256 sellingPrice;
         address seller;
-        bool sold;
+    }
+
+    // Struct for Royalty Owners and corresponding Royalty Percent
+    struct RoyaltyInfo {
+        uint256[] royaltyPercent;
+        address[] royaltyOwners;
     }
 
     mapping(uint256 => Item) public itemIdToItemMap; // itemId to item mapping
-    mapping(uint256 => address[]) public itemIdToRoyaltyOwners; //itemId to array of royalty Owners mapping
-    mapping(uint256 => uint256[]) public itemIdtoRoyaltyPercent; // itemId to corresponding Royaly Percentages mapping
+    mapping(uint256 => RoyaltyInfo) private itemIdToRoyaltyInfo; //itemId to Struct of corresponding royalty mapping
     mapping(address => uint256) public royaltyOwnerBalances; // address to royalty balance mapping
 
     constructor(address _token) {
@@ -66,28 +70,39 @@ contract Marketplace is NFT, ReentrancyGuard {
     // @dev Will check if msg.sender is the designer of the NFT
 
     function setRoyaltyOwnersAndPercent(
-        IERC721 _NFT,
         uint256 _tokenId,
         uint256 _itemId,
         address[] memory royaltyOwners,
         uint256[] memory royaltyPercent
-    ) public {
+    ) external {
         require(
-            _NFT.ownerOf(_tokenId) == msg.sender,
-            "You need to be the NFT designer and current owner of the NFT item"
+            creatorToTokenCount[msg.sender] == _tokenId,
+            "You need to be the NFT creator of the NFT item"
         );
         require(
             royaltyOwners.length < 6,
             "Maximum royalty owners can only be 5"
         );
+        require(
+            royaltyOwners.length == royaltyPercent.length,
+            "Total royalty owners should be equal to corresponding royalty percentages"
+        );
+
+        uint256 _totalRoyaltyPercent;
+
         for (uint256 i = 0; i < royaltyPercent.length; i++) {
-            if (i > 10) {
-                revert();
-            }
+            _totalRoyaltyPercent += royaltyPercent[i];
         }
-        itemIdToRoyaltyOwners[_itemId] = royaltyOwners;
-        itemIdtoRoyaltyPercent[_itemId] = royaltyPercent;
+
+        if (_totalRoyaltyPercent > 10) {
+            revert();
+        }
+
+        itemIdToRoyaltyInfo[_itemId].royaltyOwners = royaltyOwners;
+        itemIdToRoyaltyInfo[_itemId].royaltyPercent = royaltyPercent;
     }
+
+    // Function to claim Royalties
 
     function claimRoyalties() external payable {
         require(royaltyOwnerBalances[msg.sender] > 0, "No royalty earned");
@@ -121,8 +136,7 @@ contract Marketplace is NFT, ReentrancyGuard {
             _NFT,
             _tokenId,
             _sellingPrice,
-            msg.sender,
-            false
+            msg.sender
         );
 
         _NFT.transferFrom(msg.sender, address(this), _tokenId);
@@ -147,9 +161,9 @@ contract Marketplace is NFT, ReentrancyGuard {
             "You are not the owner of the NFT item"
         );
 
-        delete itemIdToItemMap[_itemId];
-
         emit ItemCancelled(_itemId, msg.sender, address(item.nftContract));
+
+        delete itemIdToItemMap[_itemId];
     }
 
     // @notice Buying items from Marketplace.
@@ -165,29 +179,33 @@ contract Marketplace is NFT, ReentrancyGuard {
 
         require(
             jaggu.balanceOf(msg.sender) >= _sellingPrice,
-            "You don't Have Token To purchase Nft"
+            "You don't have sufficient Jaggu Tokens this purchase Item"
         );
         require(_itemId > 0 && _itemId <= itemId, "Item does not exist");
-        require(item.sold == false, "Item has already been sold");
 
         uint256 _totalRoyaltyAmount = _updateBalancesforRoyalties(
             _itemId,
             _sellingPrice
         );
 
-        jaggu.transferFrom(msg.sender, payable(adminAccount), _platformFees); // transfer platform fees
+        jaggu.transferFrom(
+            msg.sender,
+            payable(adminAccount),
+            _platformFees + _totalRoyaltyAmount
+        ); // transfer platform fees
+
         jaggu.transferFrom(
             msg.sender,
             payable(item.seller),
             (_amount - _totalRoyaltyAmount)
         ); // transfer left price to owner
+
         item.nftContract.transferFrom(
             address(this),
             payable(msg.sender),
             item.tokenId
         ); // transfer NFT from smart contract to buyer
 
-        delete itemIdToItemMap[_itemId];
         itemsSold++;
 
         emit ItemSold(
@@ -198,6 +216,7 @@ contract Marketplace is NFT, ReentrancyGuard {
             item.seller,
             msg.sender
         );
+        delete itemIdToItemMap[_itemId];
     }
 
     // @notice Calculate platform fees you have to pay
@@ -219,12 +238,13 @@ contract Marketplace is NFT, ReentrancyGuard {
         internal
         returns (uint256)
     {
-        uint256 _arrLength = itemIdToRoyaltyOwners[_itemId].length;
+        RoyaltyInfo memory royaltyInfo = itemIdToRoyaltyInfo[_itemId];
+        uint256 _arrLength = royaltyInfo.royaltyOwners.length;
         uint256 _totalRoyaltyAmount;
 
         for (uint256 i = 0; i < _arrLength; i++) {
-            address _recepient = itemIdToRoyaltyOwners[_itemId][i];
-            uint256 _fee = itemIdtoRoyaltyPercent[_itemId][i];
+            address _recepient = royaltyInfo.royaltyOwners[i];
+            uint256 _fee = royaltyInfo.royaltyPercent[i];
 
             uint256 _amount = (_sellingPrice * _fee) / 10000;
 
