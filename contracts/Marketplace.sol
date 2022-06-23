@@ -7,7 +7,7 @@ import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "./NFT.sol";
 
-contract Marketplace is ReentrancyGuard {
+contract Marketplace is NFT, ReentrancyGuard {
     //@title NFT Marketplace
     //@author Pankaj Jagtap
     //@dev All function calls are currently implemented without any side effects
@@ -48,7 +48,7 @@ contract Marketplace is ReentrancyGuard {
         IERC721 nftContract;
         uint256 tokenId;
         uint256 sellingPrice;
-        address NFTcreator;
+        // address NFTcreator;
         address seller;
         bool sold;
     }
@@ -67,12 +67,17 @@ contract Marketplace is ReentrancyGuard {
     // @dev Will check if msg.sender is the designer of the NFT
 
     function setRoyaltyOwnersAndPercent(
+        IERC721 _NFT,
+        uint256 _tokenId,
         uint256 _itemId,
         address[] memory royaltyOwners,
         uint256[] memory royaltyPercent
     ) public {
-        Item storage item = itemIdToItemMap[_itemId];
-        require(item.seller == msg.sender && item.NFTcreator == msg.sender, "You need to be the NFT designer and current owner of the NFT item");
+        require(
+            _NFT.ownerOf(_tokenId) == msg.sender &&
+                creatorToTokenCount[msg.sender] == _tokenId,
+            "You need to be the NFT designer and current owner of the NFT item"
+        );
         itemIdToRoyaltyOwners[_itemId] = royaltyOwners;
         itemIdtoRoyaltyPercent[_itemId] = royaltyPercent;
     }
@@ -118,7 +123,10 @@ contract Marketplace is ReentrancyGuard {
         uint256 _tokenId,
         uint256 _sellingPrice
     ) external nonReentrant {
-        require(_NFT.ownerOf(_tokenId) == msg.sender,"You are not the owner, so can't sell");
+        require(
+            _NFT.ownerOf(_tokenId) == msg.sender,
+            "You are not the owner, so can't sell"
+        );
         require(_sellingPrice > 0, "Price has to be greater than zero");
 
         itemId++;
@@ -129,7 +137,7 @@ contract Marketplace is ReentrancyGuard {
             _tokenId,
             _sellingPrice,
             msg.sender,
-            msg.sender,
+            // msg.sender,
             false
         );
 
@@ -150,7 +158,10 @@ contract Marketplace is ReentrancyGuard {
 
     function cancelListing(uint256 _itemId) external nonReentrant {
         Item memory item = itemIdToItemMap[_itemId];
-        require(item.seller == msg.sender,"You are not the owner of the NFT item");
+        require(
+            item.seller == msg.sender,
+            "You are not the owner of the NFT item"
+        );
 
         delete itemIdToItemMap[_itemId];
 
@@ -168,15 +179,29 @@ contract Marketplace is ReentrancyGuard {
         uint256 _platformFees = calculatePlatformFees(_sellingPrice);
         uint256 _amount = _sellingPrice - _platformFees;
 
-        require(jaggu.balanceOf(msg.sender) >= _sellingPrice,"You don't Have Token To purchase Nft");
+        require(
+            jaggu.balanceOf(msg.sender) >= _sellingPrice,
+            "You don't Have Token To purchase Nft"
+        );
         require(_itemId > 0 && _itemId <= itemId, "Item does not exist");
         require(item.sold == false, "Item has already been sold");
 
-        uint256 _totalRoyaltyAmount = updateBalancesforRoyalties(_itemId, _sellingPrice);
+        uint256 _totalRoyaltyAmount = updateBalancesforRoyalties(
+            _itemId,
+            _sellingPrice
+        );
 
-        jaggu.transferFrom(msg.sender,payable(adminAccount),_platformFees); // transfer platform fees
-        jaggu.transferFrom(msg.sender,payable(item.seller),(_amount - _totalRoyaltyAmount)); // transfer left price to owner
-        item.nftContract.transferFrom(address(this),payable(msg.sender), item.tokenId); // transfer NFT from smart contract to buyer
+        jaggu.transferFrom(msg.sender, payable(adminAccount), _platformFees); // transfer platform fees
+        jaggu.transferFrom(
+            msg.sender,
+            payable(item.seller),
+            (_amount - _totalRoyaltyAmount)
+        ); // transfer left price to owner
+        item.nftContract.transferFrom(
+            address(this),
+            payable(msg.sender),
+            item.tokenId
+        ); // transfer NFT from smart contract to buyer
 
         delete itemIdToItemMap[_itemId];
         itemsSold++;
