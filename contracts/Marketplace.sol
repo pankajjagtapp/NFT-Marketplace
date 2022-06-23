@@ -48,7 +48,6 @@ contract Marketplace is NFT, ReentrancyGuard {
         IERC721 nftContract;
         uint256 tokenId;
         uint256 sellingPrice;
-        // address NFTcreator;
         address seller;
         bool sold;
     }
@@ -74,34 +73,20 @@ contract Marketplace is NFT, ReentrancyGuard {
         uint256[] memory royaltyPercent
     ) public {
         require(
-            _NFT.ownerOf(_tokenId) == msg.sender &&
-                creatorToTokenCount[msg.sender] == _tokenId,
+            _NFT.ownerOf(_tokenId) == msg.sender,
             "You need to be the NFT designer and current owner of the NFT item"
         );
+        require(
+            royaltyOwners.length < 6,
+            "Maximum royalty owners can only be 5"
+        );
+        for (uint256 i = 0; i < royaltyPercent.length; i++) {
+            if (i > 10) {
+                revert();
+            }
+        }
         itemIdToRoyaltyOwners[_itemId] = royaltyOwners;
         itemIdtoRoyaltyPercent[_itemId] = royaltyPercent;
-    }
-
-    // @notice Calculating the royalty that would have to be paid
-    // @param It will take item id, sellling Price and index of address for which royalty is to be calculated
-
-    function updateBalancesforRoyalties(uint256 _itemId, uint256 _sellingPrice)
-        internal
-        returns (uint256)
-    {
-        uint256 _arrLength = itemIdToRoyaltyOwners[_itemId].length;
-        uint256 _totalRoyaltyAmount;
-
-        for (uint256 i = 0; i < _arrLength; i++) {
-            address _recepient = itemIdToRoyaltyOwners[_itemId][i];
-            uint256 _fee = itemIdtoRoyaltyPercent[_itemId][i];
-
-            uint256 _amount = (_sellingPrice * _fee) / 10000;
-
-            royaltyOwnerBalances[_recepient] += _amount;
-            _totalRoyaltyAmount += _amount;
-        }
-        return _totalRoyaltyAmount;
     }
 
     function claimRoyalties() external payable {
@@ -137,7 +122,6 @@ contract Marketplace is NFT, ReentrancyGuard {
             _tokenId,
             _sellingPrice,
             msg.sender,
-            // msg.sender,
             false
         );
 
@@ -176,7 +160,7 @@ contract Marketplace is NFT, ReentrancyGuard {
         Item storage item = itemIdToItemMap[_itemId];
 
         uint256 _sellingPrice = item.sellingPrice;
-        uint256 _platformFees = calculatePlatformFees(_sellingPrice);
+        uint256 _platformFees = _calculatePlatformFees(_sellingPrice);
         uint256 _amount = _sellingPrice - _platformFees;
 
         require(
@@ -186,7 +170,7 @@ contract Marketplace is NFT, ReentrancyGuard {
         require(_itemId > 0 && _itemId <= itemId, "Item does not exist");
         require(item.sold == false, "Item has already been sold");
 
-        uint256 _totalRoyaltyAmount = updateBalancesforRoyalties(
+        uint256 _totalRoyaltyAmount = _updateBalancesforRoyalties(
             _itemId,
             _sellingPrice
         );
@@ -220,11 +204,33 @@ contract Marketplace is NFT, ReentrancyGuard {
     // @dev return the platform fees
     // @param the selling price to be paid
 
-    function calculatePlatformFees(uint256 _amount)
+    function _calculatePlatformFees(uint256 _amount)
         internal
         view
         returns (uint256 _price)
     {
         return _price = (_amount * platformFeePercent) / 10000;
+    }
+
+    // @notice Calculating the royalty that would have to be paid
+    // @param It will take item id, sellling Price and index of address for which royalty is to be calculated
+
+    function _updateBalancesforRoyalties(uint256 _itemId, uint256 _sellingPrice)
+        internal
+        returns (uint256)
+    {
+        uint256 _arrLength = itemIdToRoyaltyOwners[_itemId].length;
+        uint256 _totalRoyaltyAmount;
+
+        for (uint256 i = 0; i < _arrLength; i++) {
+            address _recepient = itemIdToRoyaltyOwners[_itemId][i];
+            uint256 _fee = itemIdtoRoyaltyPercent[_itemId][i];
+
+            uint256 _amount = (_sellingPrice * _fee) / 10000;
+
+            royaltyOwnerBalances[_recepient] += _amount;
+            _totalRoyaltyAmount += _amount;
+        }
+        return _totalRoyaltyAmount;
     }
 }
