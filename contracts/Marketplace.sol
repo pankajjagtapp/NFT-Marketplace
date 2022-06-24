@@ -76,7 +76,7 @@ contract Marketplace is NFT, ReentrancyGuard {
         uint256[] memory royaltyPercent
     ) external {
         require(
-            creatorToTokenCount[msg.sender] == _tokenId,
+            tokenCountToCreator[_tokenId] == msg.sender,
             "You need to be the NFT creator of the NFT item"
         );
         require(
@@ -87,6 +87,7 @@ contract Marketplace is NFT, ReentrancyGuard {
             royaltyOwners.length == royaltyPercent.length,
             "Total royalty owners should be equal to corresponding royalty percentages"
         );
+        require(_itemId > 0 && _itemId <= itemId, "Item does not exist");
 
         uint256 _totalRoyaltyPercent;
 
@@ -104,14 +105,14 @@ contract Marketplace is NFT, ReentrancyGuard {
 
     // Function to claim Royalties
 
-    function claimRoyalties() external payable {
+    function claimRoyalties() external {
         require(royaltyOwnerBalances[msg.sender] > 0, "No royalty earned");
         jaggu.transferFrom(
             address(this),
             payable(msg.sender),
             royaltyOwnerBalances[msg.sender]
         );
-        royaltyOwnerBalances[msg.sender] -= msg.value;
+        royaltyOwnerBalances[msg.sender] = 0;
     }
 
     // @notice Listing Item on Marketplace.
@@ -156,6 +157,7 @@ contract Marketplace is NFT, ReentrancyGuard {
 
     function cancelListing(uint256 _itemId) external nonReentrant {
         Item memory item = itemIdToItemMap[_itemId];
+        require(_itemId > 0 && _itemId <= itemId, "Item does not exist");
         require(
             item.seller == msg.sender,
             "You are not the owner of the NFT item"
