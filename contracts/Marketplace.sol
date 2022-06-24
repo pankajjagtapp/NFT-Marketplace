@@ -6,6 +6,7 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/token/ERC721/utils/ERC721Holder.sol";
 import "./NFT.sol";
 
 contract Marketplace is NFT, ReentrancyGuard {
@@ -151,7 +152,7 @@ contract Marketplace is NFT, ReentrancyGuard {
             msg.sender
         );
 
-        _NFT.transferFrom(msg.sender, address(this), _tokenId);
+        _NFT.safeTransferFrom(msg.sender, address(this), _tokenId);
 
         emit ItemListed(
             _itemId,
@@ -220,7 +221,7 @@ contract Marketplace is NFT, ReentrancyGuard {
             (_amount - _totalRoyaltyAmount)
         ); // transfer left price to owner
 
-        item.nftContract.transferFrom(
+        item.nftContract.safeTransferFrom(
             address(this),
             payable(msg.sender),
             item.tokenId
