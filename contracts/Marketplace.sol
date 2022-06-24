@@ -151,7 +151,7 @@ contract Marketplace is NFT, ReentrancyGuard {
             msg.sender
         );
 
-        _NFT.safeTransferFrom(msg.sender, address(this), _tokenId);
+        _NFT.transferFrom(msg.sender, address(this), _tokenId);
 
         emit ItemListed(
             _itemId,
@@ -220,7 +220,7 @@ contract Marketplace is NFT, ReentrancyGuard {
             (_amount - _totalRoyaltyAmount)
         ); // transfer left price to owner
 
-        item.nftContract.safeTransferFrom(
+        item.nftContract.transferFrom(
             address(this),
             payable(msg.sender),
             item.tokenId

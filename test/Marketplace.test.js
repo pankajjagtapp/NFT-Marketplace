@@ -82,6 +82,9 @@ describe('Marketplace Contract', function () {
 		})
 
 		it('Should cancel listing', async()=>{
+			await NFTContract.connect(addr1).mint(tokenURI1)
+			await NFTContract.connect(addr1).setApprovalForAll(marketplace.address, true)
+			await marketplace.connect(addr1).listItem(NFTContract.address, 1, 4000)
 			await expect(marketplace.cancelListing(1)).to.be.revertedWith('You are not the owner of the NFT item')
 		})
 
