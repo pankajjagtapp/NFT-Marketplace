@@ -16,7 +16,7 @@ contract Marketplace is NFT, ReentrancyGuard {
 
     address public immutable adminAccount;
     uint256 public platformFeePercent = 250; // the fee percentage on sales = 2.5% = 250/10000
-    uint256 private itemId;
+    uint256 public itemId;
     uint256 public itemsSold; // Total items sold
 
     // 3 Events - After Listing, after Cancelling Listing, after Selling Item
@@ -79,6 +79,7 @@ contract Marketplace is NFT, ReentrancyGuard {
             tokenCountToCreator[_tokenId] == msg.sender,
             "You need to be the NFT creator of the NFT item"
         );
+        require(_itemId > 0 && _itemId <= itemId, "Item does not exist");
         require(
             royaltyOwners.length < 6,
             "Maximum royalty owners can only be 5"
@@ -87,7 +88,6 @@ contract Marketplace is NFT, ReentrancyGuard {
             royaltyOwners.length == royaltyPercent.length,
             "Total royalty owners should be equal to corresponding royalty percentages"
         );
-        require(_itemId > 0 && _itemId <= itemId, "Item does not exist");
 
         uint256 _totalRoyaltyPercent;
 
